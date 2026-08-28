@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+
+# 빌드 산출물 — 제출용 실행 jar 만 예외로 포함한다
+build/*
+!build/libs/
+build/libs/*
+!build/libs/ats-api-0.0.1-SNAPSHOT.jar
+
+# IDE
+.idea/
+*.iml
+*.iws
+out/
+# Eclipse/STS 컴파일 산출물 (Gradle 의 build/ 와 별개로 생긴다)
+bin/
+.classpath
+.project
+.settings/
+
+# 로컬 전용 설정 (개발 PC 의 DB 비밀번호) — 커밋 금지
+# 정규 위치는 config/ 다. 클래스패스 밖이라 bootJar 산출물에도 포함되지 않는다.
+config/application-local.yml
+# 어느 디렉터리에 두더라도 실수로 커밋되지 않게 이름 자체를 제외한다.
+application-local.yml
+
+# 검증 산출물
+verification/*.log

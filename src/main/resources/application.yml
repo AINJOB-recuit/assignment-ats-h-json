@@ -1,0 +1,111 @@
+# ============================================================================
+#  자격증명 취급 방침
+#
+#  이 파일에는 자격증명이 없다. DB 접속 정보(url / username / password)와 SMTP 계정
+#  (spring.mail.username / password)은 키 자체를 두지 않았다 — 빈 자리표시자도 없다.
+#
+#  실제 값이 있는 곳:
+#
+#      ats-api/config/application-local.yml     ← 커밋 금지 (.gitignore)
+#
+#  클래스패스(src/main/resources) 가 아니라 config/ 에 둔 이유는 bootJar 산출물 안에
+#  포함되지 않게 하기 위해서다 — jar 를 그대로 건네도 자격증명이 따라가지 않는다.
+#  그 파일은 바로 아래 spring.config.import 가 읽어 들인다.
+#
+#  ── 이 파일 없이 기동하면 ────────────────────────────────────────────────
+#  import 는 optional: 이라 파일이 없어도 넘어가지만, spring.datasource.url 이 비어
+#  있으므로 DataSource 구성 단계에서 실패한다. 이는 의도된 동작이다 — 자격증명이
+#  저장소에 남는 것보다 '없으면 즉시, 분명하게 실패'하는 편이 낫다.
+#
+#  ── 다른 PC 에서 실행하는 방법 (README 1-3 / 1-4) ────────────────────────
+#    · jar 옆에 config/application-local.yml 을 두거나
+#    · jar 옆에 application.yml 을 두거나
+#    · --spring.datasource.url=... 처럼 커맨드라인 인자로 넘긴다
+#
+#  ── 여기 남아 있는 값에 대하여 ──────────────────────────────────────────
+#  ainjob.auth.jwt-secret 은 과제 시연 전용 HS256 서명 키다. 보호할 실데이터가 없고
+#  발급자와 검증자가 같은 애플리케이션이라 환경과 무관하게 이 값 하나로 고정한다
+#  (테스트 설정도 같은 값을 쓴다). 운영이라면 이 값도 위 파일로 내린다.
+# ============================================================================
+spring:
+  application:
+    name: ats-api
+  config:
+    # DB 접속 정보와 SMTP 계정이 들어 있는 파일. 이 파일 없이는 기동하지 못한다.
+    # 경로는 '실행한 위치(현재 작업 디렉터리)' 기준이다 — jar 로 띄울 때는 jar 옆 config/ 폴더.
+    import: optional:file:./config/application-local.yml
+  datasource:
+    # url / username / password 는 여기에 없다. config/application-local.yml 에 있다(파일 상단 참고).
+    # 접속 정보 없이 뜨지 않는 것이 정상이다.
+    hikari:
+      pool-name: ats-pool
+      maximum-pool-size: 10
+      connection-timeout: 3000
+  jpa:
+    hibernate:
+      # 스키마의 정본은 03_AINJOB_schema.sql 이다. Hibernate 가 DDL 을 만들거나 고치지 못하게 막고,
+      # 엔티티 매핑이 그 스키마와 일치하는지 기동 시 '검증만' 한다.
+      ddl-auto: validate
+    # OSIV 를 끈다. 영속성 컨텍스트를 트랜잭션 경계 안에서 닫아, 컨트롤러/직렬화 시점의
+    # 지연 로딩(=예측 못 한 쿼리)을 원천 차단한다. 응답 DTO 는 서비스에서 완성한다.
+    open-in-view: false
+    properties:
+      hibernate:
+        # 지연 로딩된 컬렉션을 IN 절로 묶어 가져온다(N+1 완화).
+        default_batch_fetch_size: 100
+        format_sql: true
+  jackson:
+    default-property-inclusion: non_null
+  mvc:
+    problemdetails:
+      enabled: false
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    # username / password 는 여기에 없다. config/application-local.yml 에 있다(파일 상단 참고).
+    # 계정 없이 알림 흐름만 보려면 아래 ainjob.mail.enabled 를 false 로 둔다(콘솔 DRY-RUN).
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          # 외부 지연이 알림 스레드를 오래 잡지 않게 짧게 끊는다 (알림은 늦느니 포기하는 편이 낫다).
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+server:
+  port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
+
+ainjob:
+  auth:
+    # HS256 서명 키(최소 32바이트). 과제 시연 전용 값이며 환경과 무관하게 이 값 하나로
+    # 고정한다(테스트 설정도 같은 값). 운영이라면 config/application-local.yml 로 내린다.
+    # 비워 두면 기동 시 임의 키를 생성하고 WARN 로그를 남기는데, 그러면 재기동마다
+    # 기존 토큰이 전부 무효가 되므로 값을 비우지 않는다.
+    jwt-secret: ainjob12!@ainjob12!@ainjob12!@ai
+    issuer: ainjob-ats
+    token-ttl: PT1H
+  mail:
+    # false = 발송하지 않고 로그로만 출력(DRY-RUN). SMTP 서버 없이 알림 흐름 검증 가능.
+    enabled: true
+  passed-applicant:
+    # 합격자 필터 실행 방식. 두 구현의 응답은 완전히 동일하다.
+    #   JPA        = Spring Data JPA (HQL). 기본값
+    #   NATIVE_SQL = 과제 원본 SQL(sql/passed-applicants.sql)을 파일 그대로 실행
+    # 바꾸려면 이 값을 NATIVE_SQL 로 고치고 앱을 다시 띄우면 된다.
+    strategy: JPA
+
+logging:
+  level:
+    com.ainjob.ats: INFO
+    # 인증 필터 체인 동작을 보려면 DEBUG 로 올린다.
+    org.springframework.security: INFO
+    # 실행되는 SQL을 콘솔에서 확인하려면 DEBUG 로 올린다.
+    org.hibernate.SQL: INFO
+    # 바인딩 파라미터까지 보려면 TRACE 로 올린다.
+    org.hibernate.orm.jdbc.bind: INFO

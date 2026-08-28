@@ -1,0 +1,51 @@
+-- AINJOB 더미 데이터 (03_AINJOB_schema.sql 적재 후)
+SET NAMES utf8mb4;
+START TRANSACTION;
+
+INSERT INTO degree_level (degree_level_id,code,name,grade) VALUES (2,'BACHELOR','학사',2),(3,'MASTER','석사',3),(4,'DOCTOR','박사',4);
+
+INSERT INTO major (major_id,name) VALUES (1,'컴퓨터공학'),(2,'소프트웨어공학'),(3,'토목공학'),(4,'인공지능'),(5,'의상디자인');
+
+INSERT INTO position_type (position_type_id,code,name) VALUES (1,'BE','백엔드'),(2,'FE','프런트엔드');
+
+INSERT INTO stage_type (stage_type_id,code,name,sort_order,is_terminal,is_passed) VALUES (1,'APPLIED','서류접수',1,0,0),(2,'INTERVIEW','면접',2,0,0),(3,'HIRED','최종합격',3,1,1),(4,'REJECTED','불합격',99,1,0);
+
+INSERT INTO skill (skill_id,code,name) VALUES (1,'ASP','ASP'),(2,'AWS','AWS'),(3,'CSS','CSS'),(4,'DBA','DBA'),(5,'DEEPLEARNING','Deep Learning'),(6,'HTML','HTML'),(7,'JAVA','Java'),(8,'JAVASCRIPT','JavaScript'),(9,'JPA','JPA'),(10,'KOTLIN','Kotlin'),(11,'NEXTJS','Next.js'),(12,'PHP','PHP'),(13,'PYTHON','Python'),(14,'PYTORCH','PyTorch'),(15,'REACT','React'),(16,'SPRINGBOOT','Spring Boot'),(17,'STRUTS','Struts'),(18,'SYSTEMARCHITECT','System Architect'),(19,'TENSORFLOW','TensorFlow'),(20,'TYPESCRIPT','TypeScript'),(21,'WEBPACK','Webpack');
+
+INSERT INTO company (company_id,name,biz_no,location) VALUES (1,'기업1','1000000001','서울 강남구'),(2,'기업2','1000000002','서울 성동구');
+
+-- 공고 4건. close_dt 는 심사 시점보다 뒤여야 한다 — 모집 기간이 지난 공고는 공개 목록/상세에서
+-- 사라지고 지원도 받지 않기 때문이다(JobPosting.isOpenAt). is_open=1 만으로는 모집 중이 아니다.
+INSERT INTO job_posting (job_posting_id,company_id,position_type_id,title,content,open_dt,close_dt,is_open) VALUES (1,1,1,'기업1 백엔드 개발자 채용','기업1 백엔드 개발자 채용 상세','2025-01-01','2027-12-31',1),(2,1,2,'기업1 프런트엔드 개발자 채용','기업1 프런트엔드 개발자 채용 상세','2025-01-01','2027-12-31',1),(3,2,1,'기업2 백엔드 개발자 채용','기업2 백엔드 개발자 채용 상세','2025-01-01','2027-12-31',1),(4,2,2,'기업2 프런트엔드 개발자 채용','기업2 프런트엔드 개발자 채용 상세','2025-01-01','2027-12-31',1);
+
+INSERT INTO job_posting_skill (job_posting_skill_id,job_posting_id,skill_id) VALUES (1,1,7),(2,1,16),(3,1,2),(4,2,15),(5,2,11),(6,2,20),(7,3,7),(8,3,16),(9,3,2),(10,4,15),(11,4,11),(12,4,20);
+
+INSERT INTO job_posting_career (job_posting_career_id,job_posting_id,position_type_id,career_years) VALUES (1,1,1,5),(2,2,2,3),(3,3,1,5),(4,4,2,3);
+
+INSERT INTO job_posting_education (job_posting_education_id,job_posting_id,degree_level_id,major_id) VALUES (1,1,2,1),(2,1,2,2),(3,2,2,1),(4,2,2,2),(5,3,2,1),(6,3,2,2),(7,4,2,1),(8,4,2,2);
+
+INSERT INTO company_role (role_id,code,name) VALUES (1,'OWNER','인사총괄'),(2,'RECRUITER','채용담당자'),(3,'VIEWER','열람전용');
+
+-- 로그인 계정. 5개 모두 비밀번호는 ainjob1234! (bcrypt 해시로 저장 — 평문 저장 금지)
+INSERT INTO company_user (company_user_id,company_id,role_id,email,password_hash,name,is_active) VALUES (1,1,1,'owner@company1.com','{bcrypt}$2a$10$7Iuyc47LUtvKqXVNSDHfFOrQUxH1c2pIVysPePeb99uk4E2tFUOla','기업1 인사총괄',1),(2,1,2,'recruiter@company1.com','{bcrypt}$2a$10$bAj3FRj4NSga3ktdaQGp8OEJP6FVrXCw6g3qhKKZ3MXFpHWvCgOo6','기업1 채용담당',1),(3,1,3,'viewer@company1.com','{bcrypt}$2a$10$4zQ6TQ9YZvCggMi8JzB/OO5tYVVrsvQ6eha1WL3F12y33lgQFgEjC','기업1 열람전용',1),(4,2,2,'recruiter@company2.com','{bcrypt}$2a$10$aZ0FCES04458nDio98COCe4rvBgQQnnkVMluky2Mq8h0YICvldNp6','기업2 채용담당',1),(5,2,3,'viewer@company2.com','{bcrypt}$2a$10$OBb4zCIeu57i28A.vGwcLetdN65jnlpGAha4MTSceV.l.QW756Ofq','기업2 열람전용',1);
+
+-- 구직자 회원 14명. 시연 편의를 위해 비밀번호는 모두 applicant1234 다.
+-- applicant_id=7(문지후)의 주소만 실제 수신 가능한 메일함이다 — 요구사항 3(상태 변경 이메일
+-- 알림)이 실제로 도착하는지 확인하기 위한 데이터다. 나머지 13명은 수신함이 없는 가짜 주소라
+-- 발송 결과를 눈으로 볼 수 없다. 이 지원자의 application_id=11 은 15건 중 유일하게 종결이
+-- 아닌(면접) 지원 건이라 상태 전이를 그대로 실행할 수 있다. 자세한 절차는 README 5-4 참고.
+INSERT INTO applicant (applicant_id,name,email,password_hash,birth_date,gender,is_active) VALUES (1,'김똘똘','recruit@ainjob.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1),(2,'이서윤','2win@naver.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1),(3,'한예진','3win@naver.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1),(4,'최준호','9win@naver.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1),(5,'박지예','10win@naver.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1),(6,'강소희','11win@naver.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1),(7,'문지후','h.json248@gmail.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1),(8,'김철수','14win@naver.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1),(9,'류태현','15win@naver.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1),(10,'전상혁','16win@naver.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1),(11,'안서연','17win@naver.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1),(12,'권휘','18win@naver.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1),(13,'황도윤','win@naver.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1),(14,'권유진','win14@naver.com','{bcrypt}$2a$10$cufuehN5bo/AyjZtT7NhguQ71epRYlkEe39Hte1bvP0s4Cx8eH50S','1995-01-01',1,1);
+
+INSERT INTO education (education_id,applicant_id,degree_level_id,major_id,name) VALUES (1,1,2,1,'연세대학교'),(2,1,3,1,'연세대학교'),(3,2,2,2,'서울대학교'),(4,2,3,2,'서울대학교'),(5,3,2,1,'고려대학교'),(6,4,2,3,'방송통신대학교'),(7,4,3,2,'방송통신대학교'),(8,5,2,2,'경북대학교'),(9,5,3,2,'경북대학교'),(10,6,2,1,'이화여자대학교'),(11,7,2,1,'상명대학교'),(12,7,3,1,'상명대학교'),(13,7,4,1,'상명대학교'),(14,8,2,1,'연세대학교'),(15,8,3,4,'연세대학교'),(16,9,2,1,'서울대학교'),(17,9,3,1,'서울대학교'),(18,10,2,1,'고려대학교'),(19,10,3,1,'고려대학교'),(20,10,4,1,'고려대학교'),(21,11,2,1,'중앙대학교'),(22,11,3,2,'중앙대학교'),(23,12,2,5,'한영대학교'),(24,12,3,4,'한영대학교'),(25,13,2,1,'한양대학교'),(26,14,2,2,'가천대학교');
+
+INSERT INTO career (career_id,applicant_id,position_type_id,name,start_dt,end_dt) VALUES (1,1,1,'네이버','2022-01-01','2025-01-01'),(2,1,2,'카카오','2020-01-01','2022-01-01'),(3,2,1,'네이버','2020-01-01','2025-01-01'),(4,2,1,'다음','2015-01-01','2020-01-01'),(5,3,1,'카카오','2022-01-01','2025-01-01'),(6,3,1,'한화','2015-01-01','2022-01-01'),(7,4,1,'LG CNS','2015-01-01','2025-01-01'),(8,4,1,'다음','2005-01-01','2015-01-01'),(9,5,2,'네이버','2023-01-01','2025-01-01'),(10,5,2,'당근','2022-01-01','2023-01-01'),(11,6,2,'TOSS','2020-01-01','2025-01-01'),(12,7,1,'미이크로소프트','2020-01-01','2025-01-01'),(13,7,2,'삼성전자','2016-01-01','2020-01-01'),(14,8,1,'Facebook','2020-01-01','2025-01-01'),(15,9,1,'현대','2019-01-01','2025-01-01'),(16,9,1,'삼성전자','2013-01-01','2019-01-01'),(17,10,1,'현대','2018-01-01','2025-01-01'),(18,10,1,'google','2015-01-01','2018-01-01'),(19,11,2,'Facebook','2022-01-01','2025-01-01'),(20,12,2,'현대','2023-01-01','2025-01-01'),(21,13,2,'신세계','2022-01-01','2025-01-01'),(22,14,2,'현대 자동차','2023-01-01','2025-01-01'),(23,14,2,'삼성전자','2022-01-01','2023-01-01');
+
+INSERT INTO career_skill (career_skill_id,career_id,skill_id) VALUES (1,1,2),(2,1,7),(3,1,16),(4,1,4),(5,1,13),(6,2,6),(7,2,20),(8,3,2),(9,3,7),(10,3,16),(11,3,12),(12,3,9),(13,3,18),(14,4,2),(15,4,7),(16,4,16),(17,5,2),(18,5,7),(19,5,16),(20,5,1),(21,6,2),(22,7,2),(23,7,7),(24,7,16),(25,7,1),(26,8,1),(27,8,10),(28,8,17),(29,9,15),(30,9,11),(31,9,20),(32,9,6),(33,9,3),(34,10,15),(35,10,11),(36,10,20),(37,10,6),(38,10,3),(39,11,15),(40,11,11),(41,11,20),(42,11,21),(43,12,2),(44,12,7),(45,12,16),(46,12,9),(47,12,5),(48,13,15),(49,13,11),(50,13,20),(51,13,6),(52,13,3),(53,14,2),(54,14,7),(55,14,16),(56,14,9),(57,14,5),(58,15,7),(59,15,16),(60,15,2),(61,16,2),(62,16,7),(63,16,16),(64,17,2),(65,17,13),(66,17,5),(67,18,2),(68,18,5),(69,19,15),(70,19,11),(71,19,20),(72,19,21),(73,20,15),(74,20,11),(75,20,20),(76,20,21),(77,21,15),(78,21,11),(79,21,20),(80,21,21),(81,22,15),(82,22,11),(83,22,20),(84,23,6),(85,23,20);
+
+INSERT INTO application (application_id,company_id,job_posting_id,applicant_id,stage_type_id,created_dt) VALUES (1,1,1,2,3,'2025-02-01'),(2,1,1,3,3,'2025-02-01'),(3,1,1,7,3,'2025-02-01'),(4,1,1,1,3,'2025-02-01'),(5,1,1,4,3,'2025-02-01'),(6,1,2,5,3,'2025-02-01'),(7,1,2,6,3,'2025-02-01'),(8,2,3,8,3,'2025-02-01'),(9,2,3,9,3,'2025-02-01'),(10,2,3,10,3,'2025-02-01'),(11,2,3,7,2,'2025-02-01'),(12,2,4,11,3,'2025-02-01'),(13,2,4,13,3,'2025-02-01'),(14,2,4,14,3,'2025-02-01'),(15,2,4,12,3,'2025-02-01');
+
+INSERT INTO stage (stage_id,application_id,stage_type_id,content,created_by,created_dt) VALUES (1,1,1,NULL,2,'2025-03-01'),(2,1,2,NULL,2,'2025-03-02'),(3,1,3,NULL,2,'2025-03-03'),(4,2,1,NULL,2,'2025-03-01'),(5,2,2,NULL,2,'2025-03-02'),(6,2,3,NULL,2,'2025-03-03'),(7,3,1,NULL,2,'2025-03-01'),(8,3,2,NULL,2,'2025-03-02'),(9,3,3,NULL,2,'2025-03-03'),(10,4,1,NULL,2,'2025-03-01'),(11,4,2,NULL,2,'2025-03-02'),(12,4,3,NULL,2,'2025-03-03'),(13,5,1,NULL,2,'2025-03-01'),(14,5,2,NULL,2,'2025-03-02'),(15,5,3,NULL,2,'2025-03-03'),(16,6,1,NULL,2,'2025-03-01'),(17,6,2,NULL,2,'2025-03-02'),(18,6,3,NULL,2,'2025-03-03'),(19,7,1,NULL,2,'2025-03-01'),(20,7,2,NULL,2,'2025-03-02'),(21,7,3,NULL,2,'2025-03-03'),(22,8,1,NULL,4,'2025-03-01'),(23,8,2,NULL,4,'2025-03-02'),(24,8,3,NULL,4,'2025-03-03'),(25,9,1,NULL,4,'2025-03-01'),(26,9,2,NULL,4,'2025-03-02'),(27,9,3,NULL,4,'2025-03-03'),(28,10,1,NULL,4,'2025-03-01'),(29,10,2,NULL,4,'2025-03-02'),(30,10,3,NULL,4,'2025-03-03'),(31,11,1,NULL,4,'2025-03-01'),(32,11,2,NULL,4,'2025-03-02'),(33,12,1,NULL,4,'2025-03-01'),(34,12,2,NULL,4,'2025-03-02'),(35,12,3,NULL,4,'2025-03-03'),(36,13,1,NULL,4,'2025-03-01'),(37,13,2,NULL,4,'2025-03-02'),(38,13,3,NULL,4,'2025-03-03'),(39,14,1,NULL,4,'2025-03-01'),(40,14,2,NULL,4,'2025-03-02'),(41,14,3,NULL,4,'2025-03-03'),(42,15,1,NULL,4,'2025-03-01'),(43,15,2,NULL,4,'2025-03-02'),(44,15,3,NULL,4,'2025-03-03');
+
+INSERT INTO matching (matching_id,application_id,score,matched_dt) VALUES (1,1,51,'2025-02-02'),(2,2,52,'2025-02-02'),(3,3,53,'2025-02-02'),(4,4,54,'2025-02-02'),(5,5,55,'2025-02-02'),(6,6,56,'2025-02-02'),(7,7,57,'2025-02-02'),(8,8,58,'2025-02-02'),(9,9,59,'2025-02-02'),(10,10,60,'2025-02-02'),(11,11,61,'2025-02-02'),(12,12,62,'2025-02-02'),(13,13,63,'2025-02-02'),(14,14,64,'2025-02-02'),(15,15,65,'2025-02-02');
+
+COMMIT;

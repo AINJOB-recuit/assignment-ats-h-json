@@ -1,0 +1,89 @@
+# ============================================================================
+#  테스트 전용 설정.
+#
+#  클래스패스에서 application.yml 은 한 번만 읽히고, Gradle 이 테스트 리소스를 메인 리소스보다
+#  앞에 두므로 테스트에서는 이 파일이 src/main/resources/application.yml 을 통째로 대신한다.
+#  일부만 덮어쓰는 게 아니라 '전부 대체'이므로, 바꿀 필요가 없는 항목도 그대로 옮겨 적는다.
+#
+#  값은 메인 설정과 전부 동일하다 — 서명 키·알림 스위치까지 환경별로 갈리는 값을 두지 않는다.
+#  설정을 환경변수로 갈아 끼우지 않는 것이 이 프로젝트의 방침이라, 테스트만 다른 값을 쓰면
+#  "테스트는 통과하는데 실행하면 다르게 도는" 경로가 생긴다.
+#
+#  자격증명은 이 파일에도 없다. DB 접속 정보와 SMTP 계정은 메인 설정과 똑같이
+#  ats-api/config/application-local.yml 에서 온다(커밋 금지). 아래 config.import 가
+#  메인 설정과 '같은 파일 하나'를 가리키므로 로컬 값을 두 군데 적을 필요가 없다.
+#  (Gradle test 태스크의 작업 디렉터리가 ats-api/ 라서 같은 상대경로가 그대로 통한다.)
+#
+#  그 파일이 없으면 DB 를 쓰는 통합 테스트는 뜨지 못한다. 통합 테스트는 항상 실행되므로
+#  ./gradlew test 는 DB 와 그 파일을 전제한다.
+# ============================================================================
+spring:
+  application:
+    name: ats-api
+  config:
+    # DB 접속 정보와 SMTP 계정. 메인 설정과 같은 파일 하나를 가리킨다(커밋 금지).
+    import: optional:file:./config/application-local.yml
+  datasource:
+    # 통합 테스트는 실제 DB(03_AINJOB_schema.sql + 03_AINJOB_dummy.sql 적재본)를 그대로 쓴다.
+    # 각 테스트는 @Transactional 롤백이라 더미가 오염되지 않는다.
+    # url / username / password 는 위 config.import 가 읽는 config/application-local.yml 에 있다.
+    hikari:
+      pool-name: ats-pool
+      maximum-pool-size: 10
+      connection-timeout: 3000
+  jpa:
+    hibernate:
+      # 엔티티 18개가 실제 스키마와 맞는지 테스트 기동 때도 검증한다.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        default_batch_fetch_size: 100
+        format_sql: true
+  jackson:
+    default-property-inclusion: non_null
+  mvc:
+    problemdetails:
+      enabled: false
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    # username / password 는 config/application-local.yml 에 있다(파일 상단 참고).
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+server:
+  port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
+
+ainjob:
+  auth:
+    # 메인 설정과 같은 키다. 서명 키는 환경과 무관하게 이 값 하나로 고정한다.
+    jwt-secret: ainjob12!@ainjob12!@ainjob12!@ai
+    issuer: ainjob-ats
+    token-ttl: PT1H
+  mail:
+    # 메인 설정과 같다. 전이를 수행하는 테스트는 모두 @Transactional 롤백이라
+    # AFTER_COMMIT 리스너가 발동하지 않고, 따라서 실제 발송도 일어나지 않는다.
+    # 커밋되는 전이 테스트를 새로 추가한다면 이 값을 다시 검토해야 한다.
+    enabled: true
+  passed-applicant:
+    # 기본 전략으로 테스트한다. 두 구현이 같은 결과를 내는지는
+    # AtsApiIntegrationTest.bothFinderStrategiesAgree 가 두 Finder 를 직접 주입해 대조한다.
+    strategy: JPA
+
+logging:
+  level:
+    com.ainjob.ats: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.orm.jdbc.bind: INFO
